@@ -1,13 +1,15 @@
 # skills
 
-Personal [agent skills](https://github.com/vercel-labs/skills) by [@martinbavio](https://github.com/martinbavio).
+Personal [agent skills](https://github.com/vercel-labs/skills) by [@mbavio-phota](https://github.com/mbavio-phota).
+
+[![skills.sh](https://skills.sh/b/mbavio-phota/skills)](https://skills.sh/mbavio-phota/skills)
 
 ## Install
 
 ```bash
-npx skills add martinbavio/skills
+npx skills add mbavio-phota/skills
 # or a single skill:
-npx skills add martinbavio/skills --skill tenacious-review
+npx skills add mbavio-phota/skills --skill tenacious-review
 ```
 
 ## Skills
