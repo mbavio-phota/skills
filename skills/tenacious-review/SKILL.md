@@ -16,7 +16,8 @@ Run one consolidated review of the current worktree by applying several independ
   - `git diff <base>...HEAD --name-only`
   - `git diff <base>...HEAD` (the full patch)
 - Read the **current full contents** of the changed files (skip deletions, lockfiles, and generated output) so reviewers evaluate real code, not just the patch.
-- If the diff is empty, stop and report "no changes vs `<base>`".
+- **Confirm you're reviewing the intended target, and name it in the report.** Two traps make `<base>...HEAD` review the wrong code: (a) a **merge-commit HEAD** (base merged into the branch) makes the three-dot diff empty or understated even when the branch has real changes; (b) an **open PR** is judged on its *committed* diff, which can diverge from the local worktree (uncommitted edits, an earlier/later draft) — so external findings (Greptile, human reviewers) are about the PR, not your worktree. When a PR exists (`gh pr view --json number,headRefName`) and the user's intent is PR review, review `gh pr diff <n>`. State explicitly which target you reviewed (PR #N / worktree / `<base>...HEAD`), and **never switch diff targets silently** — if step 1's command finds nothing useful, say so and say what you ran instead.
+- If the diff is empty, **don't stop yet** — an empty three-dot diff with changes obviously present means you're diffing the wrong target (check (a)/(b) above). Only report "no changes vs `<base>`" once you've confirmed the branch genuinely has none.
 - If you are reviewing the result of a **structural recommendation** from a prior pass (an extraction or refactor you advised), re-run the affected lens against it — that new surface has been reviewed by no one.
 
 ## 2. Decide which lenses apply
