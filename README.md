@@ -19,11 +19,12 @@ npx skills add mbavio-phota/skills --skill tenacious-review
 | Skill | Description |
 |:------|:------------|
 | `tenacious-review` | Consolidated local PR review — runs the thermo correctness/security + code-quality rubrics (plus React/studio lenses when the diff touches a web frontend) over the worktree diff, then synthesizes one prioritized, deduped report. Harness-agnostic (Claude Code, Cursor, Codex, …); parallel sub-agents where supported, sequential otherwise. |
+| `tenacious-audit` | Whole-tree sibling of `tenacious-review` — audits a full codebase or large subsystem (not a diff) by partitioning the work across subsystem *slices* × review *lenses*, adversarially refuting each finding, then landing a verified, tracked backlog as milestoned tickets plus an inventory doc. Run by hand. |
 | `thermo-nuclear-review` | Deep correctness & security branch audit (bugs, breaking changes, security, devex regressions, feature-flag leaks), scoped to the diff. |
 | `thermo-nuclear-code-quality-review` | Strict maintainability audit (abstraction quality, giant files, spaghetti-condition growth, boundaries). |
 | `fix-greptile-review` | Fetch Greptile's PR comments (inline **and** "Comments Outside Diff"), judge each against the code, fix the valid ones, then commit and push. A trustworthy filter — never a blind apply, never a blanket dismiss. Triggers on "grr"/"greptile"/"fix the PR review comments". |
 
-`tenacious-review` orchestrates the two `thermo-nuclear-*` rubrics as its always-on lenses.
+`tenacious-review` orchestrates the two `thermo-nuclear-*` rubrics as its always-on lenses; `tenacious-audit` applies the same lenses across a whole codebase rather than a single diff.
 
 ### Linear workflow
 
@@ -36,7 +37,7 @@ npx skills add mbavio-phota/skills --skill tenacious-review
 
 `thermo-nuclear-review` and `thermo-nuclear-code-quality-review` are adapted from the
 [Thermos plugin](https://github.com/cursor/plugins/tree/main/thermos) (MIT) — ported to be
-harness-agnostic. `tenacious-review` is original.
+harness-agnostic. `tenacious-review` and `tenacious-audit` are original.
 
 ## License
 
