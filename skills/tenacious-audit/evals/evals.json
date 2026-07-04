@@ -1,0 +1,40 @@
+{
+  "skill_name": "tenacious-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Do a full audit of the web/apps/studio codebase — I want a real inventory of the bugs, security holes, and tech debt across the whole app, not a diff review. File the confirmed ones as Linear tickets we can hand to fresh agents, grouped so we know what order to tackle them in.",
+      "expected_output": "Runs the whole-tree audit pipeline: grounds by running fast checks, partitions studio into slices, fans out finders in waves, verifies findings adversarially before ticketing, and lands verified findings as Linear tickets in execution-phase milestones. Refuted findings stay in the inventory but are not filed.",
+      "files": [],
+      "expectations": [
+        "The skill runs the project's fast checks (typecheck/lint/test) before reading for findings, and treats failures as findings",
+        "Findings are kept as structured JSON (finding/verdict/triage schema), not free prose",
+        "Each bug/security finding passes an adversarial refuter before becoming a ticket; refuted findings are recorded but not filed",
+        "Subagents are launched in throttled waves (~5), not one large parallel blast",
+        "Tickets are grouped into execution-phase milestones (security, then bugs, then test safety net, then refactors)",
+        "Ticket bodies are generated deterministically from finding data rather than re-typed by an LLM"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I don't want to touch our issue tracker. Just inventory everything questionable in the feed/ subsystem — smells, dead code, missing tests, perf — into a markdown doc plus a browsable page I can filter. This is the whole subsystem, not a PR.",
+      "expected_output": "Scopes the audit to feed/ as a named subsystem in markdown-only mode: produces the inventory doc and optional filterable HTML artifact, skips ticket creation, but still verifies/triages findings and surfaces a completeness report.",
+      "files": [],
+      "expectations": [
+        "The audit is scoped to the feed/ subsystem rather than the whole repo",
+        "Runs in markdown-only mode: delivers an inventory doc and a filterable artifact, does not create tracker tickets",
+        "Still verifies and triages findings and surfaces a completeness/gap report at the end"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Can you review the changes on my current branch before I open the PR?",
+      "expected_output": "Recognizes this is a diff/branch review, NOT a whole-codebase audit, and defers to tenacious-review (or a diff-review flow) rather than triggering the whole-tree audit pipeline.",
+      "files": [],
+      "expectations": [
+        "Does NOT trigger the whole-codebase audit pipeline for a single-branch diff review",
+        "Points to the diff/PR review path (tenacious-review) instead"
+      ]
+    }
+  ]
+}
