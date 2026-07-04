@@ -28,6 +28,10 @@ Run one consolidated review of the current worktree by applying several independ
   - any change under `web/apps/studio/**` → add the `studio-review` lens **if that rubric is available in this environment** (it is repo-local; skip it silently when it doesn't exist).
 - If the diff is backend-only (no `web/`), skip every frontend lens and say so in the report.
 
+## 2.5 Run the project's fast checks before reading
+
+For the touched surface, run the narrowest relevant typecheck / lint / unit-test / eval command (find them in `package.json` scripts or BUILD), and treat any failure as a finding. A static read cannot see import-time side-effects, broken test/eval harnesses, or a module that crashes on load — exactly the class that trips `import "server-only"` outside a bundler. Never certify a test or eval as *coverage* without confirming it actually runs.
+
 ## 3. Run the lenses
 
 Build the shared context block once and give it verbatim to every lens:
@@ -41,6 +45,8 @@ Build the shared context block once and give it verbatim to every lens:
 ```
 
 Run each applicable lens as an **independent parallel sub-agent if your harness supports them; otherwise run the lenses sequentially.** Each sub-agent gets the same shared context block, applies exactly one rubric to **only** this diff, and **reports findings only — it must not modify any files or run fixes.** Do not spawn nested sub-agents; every lens is independent.
+
+Give one lens a different *method*, not just a different rubric. Run one lens as an **execute-and-trace** pass: it runs the checks from §2.5, traces one real path through the *installed* dependency versions (`package.json` pins + `node_modules`), and greps sibling modules — so the panel isn't three static readers sharing one blind spot.
 
 For each lens, the instruction is: *"Apply the **`<lens>`** rubric to ONLY this diff (load the `<lens>` skill if your harness has one; otherwise follow that rubric's criteria). Report findings only — do not modify any files.\n\n<shared context block>"*
 
@@ -58,7 +64,7 @@ Lenses:
 Once all lenses have finished, produce **one** report:
 
 - **Verdict** line first (e.g. *Ship / Minor polish / Needs changes / Blocker*).
-- **Findings grouped by severity** (Blocker → High → Medium → Low → Nit), **deduped across lenses**. When ≥2 lenses raise the same issue, merge it and mark it **corroborated** (weight it higher).
+- **Findings grouped by severity** (Blocker → High → Medium → Low → Nit), **deduped across lenses**. When ≥2 lenses raise the same issue, merge it and mark it **corroborated**. But "≥2 lenses agree ⇒ weight higher" holds only when they reached it by **different methods**. Agreement among same-method static readers is a shared blind spot, not confirmation. Conversely, a runtime/SDK claim **no lens tested** is *unverified* — do not upgrade it to a strength because the code's comment is confident and detailed.
 - Each finding: `file:line` + one-line evidence + which lens(es) raised it.
 - Drop cosmetic nits when structural/correctness issues dominate.
 - Don't restate each lens wholesale — surface the unified verdict, highest-signal findings, and any remaining uncertainty.
