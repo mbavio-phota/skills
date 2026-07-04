@@ -26,6 +26,12 @@ npx skills add mbavio-phota/skills --skill tenacious-review
 
 `tenacious-review` orchestrates the two `thermo-nuclear-*` rubrics as its always-on lenses; `tenacious-audit` applies the same lenses across a whole codebase rather than a single diff.
 
+### Demo
+
+| Skill | Description |
+|:------|:------------|
+| `demo` | Dummy test skill — says hello and reports the current date and working directory. |
+
 ### Linear workflow
 
 | Skill | Description |
