@@ -33,11 +33,21 @@ npx skills add mbavio-phota/skills --skill tenacious-review
 | `to-linear-prd` | Synthesizes the current conversation into a PRD and publishes it to Linear as a resource document under an umbrella issue — no interview, just synthesis of what's been discussed. |
 | `to-linear-plan` | Turns a Linear-hosted PRD into a multi-phase, tracer-bullet implementation plan saved to `./plans/`, then fills the umbrella issue (single-phase) or creates one child issue per phase (multi-phase). Invoke as `/to-linear-plan <umbrella-issue>`. |
 
+### Workflow
+
+| Skill | Description |
+|:------|:------------|
+| `find-unknowns` | Surfaces the gap between your prompt (the map) and what the work actually needs (the territory) with cheap probes matched to the kind of unknown: blindspot pass, throwaway variations, one-question-at-a-time interviews, source-code references, deviation logs, and post-merge explainer quizzes. |
+
 ## Attribution
 
 `thermo-nuclear-review` and `thermo-nuclear-code-quality-review` are adapted from the
 [Thermos plugin](https://github.com/cursor/plugins/tree/main/thermos) (MIT) — ported to be
-harness-agnostic. `tenacious-review` and `tenacious-audit` are original.
+harness-agnostic. `tenacious-review` and `tenacious-audit` are original. `find-unknowns` is
+adapted from Thariq Shihipar's article
+["A Field Guide to Fable: Finding Your Unknowns"](https://x.com/trq212/status/2073100352921215386),
+with mechanics borrowed from David Zhang's
+[`explore-unknowns`](https://github.com/dzhng/skills/tree/main/skills/engineering/explore-unknowns) (MIT).
 
 ## License
 
