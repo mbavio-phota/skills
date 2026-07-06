@@ -1,6 +1,6 @@
 ---
 name: ship-tickets
-description: "Orchestrate a milestone or group of tickets end-to-end into reviewed, bot-clean PRs — fan out one implementer per ticket-group, run adversarial review rounds, open one PR per issue (stacked where they share files), trigger the repo's code-review bot, triage its findings, and report. Stops at PRs; never merges. User-invoked."
+description: "Drive a Linear milestone or ticket group into reviewed, code-review-bot-clean PRs — fan out implementers, run rotating-lens fresh-agent review, open PRs, triage the bot. Never merges. User-invoked."
 disable-model-invocation: true
 ---
 
@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Drive a set of tickets (a Linear milestone, a project, or an explicit list) from backlog to **reviewed, bot-clean PRs ready for a human to merge**. You are the orchestrator: you plan, spawn workers, route findings, and report — you do not write the feature code yourself, and you **never merge**.
 
-This skill is the wrapper around `implement` + `tenacious-review` + `fix-greptile-review`. Its value is the coordination discipline and the gotchas baked in below, learned the hard way.
+This skill is the wrapper around `implement` + `tenacious-review` + `fix-greptile-review`. Its value is the coordination discipline and the gotchas baked in below.
 
 > **External dependencies.** `tenacious-review` and `fix-greptile-review` ship in this collection. **`implement` does not** — it's expected to be present in your environment. Every reference below is written to invoke `implement` via the Skill tool *when available* and to fall back to an explicit inline TDD procedure when it isn't, so the skill degrades gracefully in a standalone install.
 
@@ -21,17 +21,10 @@ This skill is the wrapper around `implement` + `tenacious-review` + `fix-greptil
 
 ## Phase 0 — Preflight (do this BEFORE spawning anything)
 
-These four checks each cost minutes and each, skipped, cost me ~40 min this run:
+Each of these, skipped, silently costs a full poll cycle or a blocked fix round:
 
-1. **Bot mechanics — known, codified (don't re-discover).** For `photalabs/retina` the code-review bot is **Greptile**, and these facts are fixed:
-   - **Trigger:** post a PR comment that **@-mentions** `@greptile`. Slash forms (`/greptile`, `/greptileai`) are no-ops — automatic reviews are disabled on this repo.
-   - **Bot login:** `greptile-apps[bot]`. Its review is one issue comment beginning with `Greptile Summary` (with `Confidence Score: N/5`, a `Comments Outside Diff (n)` section, and inline PR review comments for in-diff findings). A short `greptile-status` stub ("Automatic reviews are disabled…") is posted on every PR open — it is **not** a review; filter it out.
-   - **Completion signal (first review):** the `Greptile Summary` comment appears (body length ≫ the stub).
-   - **Completion signal (re-review):** Greptile **edits the existing summary comment in place** — it does NOT post a new one. Detect via `updated_at` advancing **and** the body referencing the new commit SHA / findings clearing. A poller waiting for a *second* summary comment hangs forever.
-   - Comment posting is via GraphQL → **owner casing matters**: use `-R PhotaLabs/retina`.
-
-   Only re-verify these if the repo, or the bot, is different from the above (or the `reference_greptile_pr_trigger` memory) — otherwise treat them as settled and act.
-2. **`gh auth status`** and confirm the remote/owner casing (GraphQL comment posting is owner-case-sensitive; e.g. `-R PhotaLabs/retina`).
+1. **Discover the repo's code-review bot mechanics.** Do NOT assume a slash command. Establish, once: its trigger syntax (many bots use an @-mention, not a slash), its bot login, and — critically — its **re-review completion signal**. Many bots **edit their existing summary comment in place** rather than posting a new one; a poller waiting for a *second* comment then hangs forever, so detect completion via the comment's `updated_at` advancing plus the body referencing the new commit SHA. For `photalabs/retina` the bot is **Greptile** and every concrete value is in [`references/greptile-photalabs-retina.md`](references/greptile-photalabs-retina.md) — load it and skip the discovery. `fix-greptile-review` owns the triage.
+2. **`gh auth status`** and confirm the remote/owner casing — GraphQL comment posting is owner-case-sensitive (e.g. a mixed-case owner must be spelled exactly, `-R Owner/repo`).
 3. **Worktree/branch hygiene.** List `git worktree list`. Plan to prune finished agent worktrees before any fix round — a locked worktree holding a branch **blocks checkout of that branch**. Only prune worktrees *this session* created.
 4. **Fast-check commands.** Find the project's narrowest typecheck / test / lint commands (package.json scripts or BUILD) once, and put them in the shared brief.
 
@@ -59,7 +52,7 @@ If an agent notification shows it paused "waiting on review sub-agents," `SendMe
 Every review pass is a **fresh** agent (isolated worktree) that did **not** write the code — never the implementer, never the same reviewer twice in a row. Fresh eyes are the whole value; and rotating the *method* is what makes agreement mean something (three static readers sharing one blind spot is not confirmation).
 
 **Rotating lenses — each pass uses a different method:**
-1. **Adversarial break-it** — actively try to break the change with concrete inputs; enumerate bypass/edge classes and actually resolve/execute them against the pinned deps. (This is what caught the open-redirect regression the fix itself introduced this run.)
+1. **Adversarial break-it** — actively try to break the change with concrete inputs; enumerate bypass/edge classes and actually resolve/execute them against the pinned deps. This is the pass that catches a regression the fix itself introduced.
 2. **`tenacious-review` rubric** — apply the `tenacious-review` lenses (thermo-nuclear correctness/security + code-quality, plus `studio-review`/react lenses for `web/` diffs). **Load the skill for its criteria and apply them INLINE — do not run its multi-sub-agent fan-out** (nested sub-agents stall; you want one agent applying the rubric).
 3. **Execute-and-trace** — run the project's fast checks, trace one real path through the *installed* dep versions, grep sibling modules for the same pattern. Catches import-time crashes and broken harnesses a static read misses.
 4. **(only if a 4th pass is warranted)** targeted re-attack on the specific residual finding.
@@ -82,7 +75,7 @@ Every pass: run the fast checks, report a verdict (Ship / Minor polish / Needs c
 
 - Post the discovered trigger on each PR (correct owner casing).
 - **Poll correctly for the mechanic you found in Phase 0** — if the bot edits its comment in place, detect via `updated_at` advancing **and the body referencing the new commit SHA / findings clearing**, not by a new-comment count. A naive "wait for a 2nd comment" poller hangs forever.
-- **Triage every finding fix-vs-skip against the code** (use `fix-greptile-review`). A skip needs a crisp written rationale (post it as a reply). Watch for the rare **real bug** among the nits — in this run the bot caught a genuine off-by-slice correctness bug.
+- **Triage every finding fix-vs-skip against the code** (use `fix-greptile-review`). A skip needs a crisp written rationale (post it as a reply). Watch for the rare **real bug** among the nits — a bot that mostly flags style will occasionally surface a genuine correctness defect.
 - Fixes go on the same branches (force-with-lease for rebased stacks).
 - **Re-review is severity-gated:**
   - **Cosmetic / low-risk tickets** (dead-code deletion, comment/doc fixes, test-only additions, pure-style changes): **one Greptile pass and done.** Apply any findings, but do **not** re-trigger the bot — a green re-read buys nothing here.
@@ -97,7 +90,7 @@ One consolidated message: table of PR # / issue / priority / what shipped / bot 
 
 - Scale reviewer intensity to severity: High/security tickets get adversarial break-it passes and a re-review; Low/cosmetic get a light pass.
 - Use `AskUserQuestion` only for genuine forks (delete-vs-gate, provision-infra-vs-defer). Otherwise pick the reversible default and note it.
-- **Fully-deterministic variant** — [`ship-tickets.workflow.js`](ship-tickets.workflow.js) in this skill dir. Requires the user to opt into multi-agent orchestration (the `Workflow` tool needs explicit opt-in). Scout **inline first** (Phases 0–1: fetch full ticket bodies, discover the bot trigger, group by file collision) to build the `args.groups` work-list, then run the script — it encodes Phases 2–4 as a `pipeline()` where each **ticket-group** flows implement → multi-pass review+fix → push+PR independently (no barrier). The review stage is the loop from Phase 3: fresh agent per pass, **rotating lenses** (adversarial → `tenacious-review` rubric inline → execute-and-trace → targeted re-attack), severity-gated budget (substantive: min 3 / max 4 passes; cosmetic: 1 / max 2), fix agent between passes when a pass returns something worthwhile. Independence is structural — every pass is a separate `agent()` call, so the reviewer is never the author and never the previous reviewer. The script hands back a compact roster; the **main loop drives Phase 5** (the external bot) because an external service's timing is not part of a deterministic DAG. Determinism = the *orchestration* (order, fan-out, barriers, retry bound) is fixed and resumable (`resumeFromRunId` re-runs only failed stages forward); agent *content* is still model-generated. Default remains manual background-agent orchestration, which needs no opt-in and keeps you in the loop between phases.
+- **Fully-deterministic variant** — [`scripts/ship-tickets.workflow.js`](scripts/ship-tickets.workflow.js). Requires opt-in (the `Workflow` tool is explicit-opt-in only). Scout Phases 0–1 **inline first** to build the `args.groups` work-list, then run the script: it encodes Phases 2–4 (implement → multi-pass review+fix → push+PR) as a `pipeline()` over ticket-groups, applying the same Phase-3 review policy. The external bot round (Phase 5) stays in the main loop — an external service's timing isn't part of a deterministic DAG. "Deterministic" means the *orchestration* is fixed and resumable, not the agents' content. The default path is manual background-agent orchestration, which needs no opt-in.
 
 ## Non-negotiables
 

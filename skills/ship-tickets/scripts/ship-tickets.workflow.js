@@ -116,8 +116,7 @@ Rules:
 Tickets:
 ${g.tickets.map((t) => `### ${t.id}  (branch: ${t.branch}, base: ${t.base})\n${t.body}`).join('\n\n')}`
 
-// Rotating lenses — each review PASS uses a different METHOD so agreement means
-// something (three static readers sharing one blind spot is not confirmation).
+// Rotating lenses — each review PASS uses a different METHOD (rationale in SKILL.md Phase 3).
 const LENSES = [
   { key: 'adversarial', desc: 'ADVERSARIAL break-it: actively try to break the change with concrete inputs; enumerate bypass/edge classes and actually resolve/execute them against the pinned deps.' },
   { key: 'tenacious', desc: 'Apply the `tenacious-review` rubric INLINE — load the skill for its criteria (thermo-nuclear correctness/security + code-quality, plus studio-review/react lenses for web/ diffs) and apply them yourself. Do NOT run its multi-sub-agent fan-out.' },
