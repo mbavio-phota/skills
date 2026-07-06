@@ -26,6 +26,14 @@ npx skills add mbavio-phota/skills --skill tenacious-review
 
 `tenacious-review` orchestrates the two `thermo-nuclear-*` rubrics as its always-on lenses; `tenacious-audit` applies the same lenses across a whole codebase rather than a single diff.
 
+### Orchestration
+
+| Skill | Description |
+|:------|:------------|
+| `ship-tickets` | Drive a Linear milestone or ticket group end-to-end into reviewed, Greptile-clean PRs: fan out one implementer per ticket-group (isolated worktrees), run multi-pass **fresh-agent** review with rotating lenses (adversarial break-it → `tenacious-review` rubric → execute-and-trace), open one PR per issue (stacked where they share files), trigger + triage the code-review bot, then report. Stops at PRs — **never merges**. Implementers never review their own work; review depth and the bot re-review are severity-gated. Ships with an optional deterministic `Workflow` script (`ship-tickets.workflow.js`) for the parallel middle. User-invoked. |
+
+`ship-tickets` composes `tenacious-review` (as a review lens) and `fix-greptile-review` (for the bot round), and drives the `implement` skill per ticket-group.
+
 ### Linear workflow
 
 | Skill | Description |
