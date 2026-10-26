@@ -1,8 +1,9 @@
 ---
 name: tenacious-review
-description: "Consolidated local PR review — applies the thermo-nuclear correctness/security and code-quality rubrics (plus React/studio lenses when the diff touches a web frontend) over the worktree diff and synthesizes one prioritized, deduped report. User-invoked."
-disable-model-invocation: true
+description: "Consolidated local PR review — applies the thermo-nuclear correctness/security and code-quality rubrics (plus React/studio lenses when the diff touches a web frontend) over the worktree diff and synthesizes one prioritized, deduped report. Use only when the user asks for a tenacious review by name; never on your own initiative."
 ---
+
+A harness that does not list this skill reads this SKILL.md directly from where it was installed (for Claude Code, `~/.claude/skills/tenacious-review/SKILL.md`); do not search for it.
 
 # Tenacious Review
 
@@ -12,10 +13,10 @@ Run one consolidated review of the current worktree by applying several independ
 
 - **Base ref:** if the user named a base ref, use it; otherwise default to `origin/main`.
 - `git fetch origin --quiet`, then compute the diff with the merge-base (three-dot):
-  - `git diff <base>...HEAD --stat`
+  - `git diff <base>...HEAD --stat` (read this; it is small)
   - `git diff <base>...HEAD --name-only`
-  - `git diff <base>...HEAD` (the full patch)
-- Read the **current full contents** of the changed files (skip deletions, lockfiles, and generated output) so reviewers evaluate real code, not just the patch.
+  - Write the patch to files instead of reading it (`mkdir -p .context/review/diffs` first): `git diff <base>...HEAD > .context/review/patch.diff`, and one slice per changed file, `git diff <base>...HEAD -- <path> > .context/review/diffs/<path with / as __>.diff` (skip deletions, lockfiles and generated output). Never print the whole patch into your context: a large one comes back truncated and every lens rereads it.
+- Write `.context/review/index.md`: one line per changed file with its +/- counts from `--stat`, its slice path, and a few words on what changed. This index, not the patch, is what every lens starts from. Reviewers read the current contents of the files themselves, in line ranges.
 - **Confirm you're reviewing the intended target, and name it in the report.** Two traps make `<base>...HEAD` review the wrong code: (a) a **merge-commit HEAD** (base merged into the branch) makes the three-dot diff empty or understated even when the branch has real changes; (b) an **open PR** is judged on its *committed* diff, which can diverge from the local worktree (uncommitted edits, an earlier/later draft) — so external findings (Greptile, human reviewers) are about the PR, not your worktree. When a PR exists (`gh pr view --json number,headRefName`) and the user's intent is PR review, review `gh pr diff <n>`. State explicitly which target you reviewed (PR #N / worktree / `<base>...HEAD`), and **never switch diff targets silently** — if step 1's command finds nothing useful, say so and say what you ran instead.
 - If the diff is empty, **don't stop yet** — an empty three-dot diff with changes obviously present means you're diffing the wrong target (check (a)/(b) above). Only report "no changes vs `<base>`" once you've confirmed the branch genuinely has none.
 - If you are reviewing the result of a **structural recommendation** from a prior pass (an extraction or refactor you advised), re-run the affected lens against it — that new surface has been reviewed by no one.
@@ -30,18 +31,24 @@ Run one consolidated review of the current worktree by applying several independ
 
 ## 2.5 Run the project's fast checks before reading
 
-For the touched surface, run the narrowest relevant typecheck / lint / unit-test / eval command (find them in `package.json` scripts or BUILD), and treat any failure as a finding. A static read cannot see import-time side-effects, broken test/eval harnesses, or a module that crashes on load — exactly the class that trips `import "server-only"` outside a bundler. Never certify a test or eval as *coverage* without confirming it actually runs.
+For the touched surface, run the narrowest relevant typecheck / lint / unit-test / eval command (find them in `package.json` scripts or BUILD; in a repo whose AGENTS.md names a focused check, such as `pnpm verify`, use that), and treat any failure as a finding. Send long output to `.context/review/checks.log` and read its tail, and finish this step before the lenses start: browser tests running alongside several lenses flake under the load. A static read cannot see import-time side-effects, broken test/eval harnesses, or a module that crashes on load — exactly the class that trips `import "server-only"` outside a bundler. Never certify a test or eval as *coverage* without confirming it actually runs.
 
 ## 3. Run the lenses
 
-Build the shared context block once and give it verbatim to every lens:
+Build the shared context block once and give it verbatim to every lens. It is short on purpose: it points at the material, it does not contain it.
 
 ```
-### Git / diff output
-<git diff <base>...HEAD>
+### Target
+<PR #N / worktree / <base>...HEAD>, base <sha>
 
-### Changed file contents
-<path + full contents, per changed file>
+### Changed files
+<the --stat output>
+Index: .context/review/index.md · per-file diffs: .context/review/diffs/ · checks: .context/review/checks.log
+
+### How to read
+- Start from the index. Read the diff slice of each file your rubric needs; never the whole patch.diff.
+- Read source in line ranges (at most ~300 lines a call), never several whole files in one command.
+- The repo's rules: read the headings of its conventions doc (e.g. `grep -n '^## ' docs/conventions.md`) and only the sections this diff touches. Do not cat whole docs.
 ```
 
 Run each applicable lens as an **independent parallel sub-agent if your harness supports them; otherwise run the lenses sequentially.** Each sub-agent gets the same shared context block, applies exactly one rubric to **only** this diff, and **reports findings only — it must not modify any files or run fixes.** Do not spawn nested sub-agents; every lens is independent.
